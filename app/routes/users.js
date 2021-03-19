@@ -4,10 +4,29 @@ const Users = require("../model/Users");
 
 //To get all user
 router.get("/", (req, res) => {
+  if(req.query.id){
+    const id = req.query.id;
+    Users.findById(id)
+          .then(data =>{
+              if(!data){
+                  res.status(404).send({ message : "Not found user with id "+ id})
+              }else{
+                  res.send(data)
+              }
+          })
+          .catch(err =>{
+              res.status(500).send({ message: "Error retrieving user with id " + id})
+          })
+  }else{
     Users.find()
-      .then((resp) => res.status(200).json(resp))
-      .catch((err) => res.status(400).json("Request Failed"));
-});
+          .then(user => {
+              res.send(user)
+              })
+              .catch(err => {
+                  res.status(500).send({ message : err.message || "Error Occurred while retriving user information" })
+              })
+      } 
+    });
 
 //To Create a new user
 router.post("/", (req, res) => {
@@ -21,14 +40,27 @@ router.post("/", (req, res) => {
     user
       .save()
       .then((resp) => res.status(201).json(resp))
-      .catch((err) => res.status(400).json("Request Failed"));
+      .catch((err) => res.status(500).json("Some error occurred while creating a create operation"));
 });
 
 //To delete a specific user
-router.delete("/:id", (req, res) => {
-    Users.deleteOne({ _id: req.params.id })
-      .then((resp) => res.status(200).json(resp))
-      .catch((err) => res.status(400).json("Request Failed"));
+router.delete("/:id", (req, res)=>{
+  const id = req.params.id;
+  Users.findByIdAndDelete(id)
+      .then(data => {
+          if(!data){
+              res.status(404).send({ message : `Cannot Delete with id ${id}. Maybe id is wrong`})
+          }else{
+              res.send({
+                  message : "User was deleted successfully!"
+              })
+          }
+      })
+      .catch(err =>{
+          res.status(500).send({
+              message: "Could not delete User with id=" + id
+          });
+      });
 });
 
 //To Get a specific user
@@ -40,10 +72,26 @@ router.get("/:id", (req, res) => {
 
 //To update specific post
 router.patch("/:id", (req, res) => {
-    Users.updateOne({ _id: req.params.id }, { $set: req.body })
-      .then((resp) => res.status(200).json(resp))
-      .catch((err) => res.status(400).json("Request Failed"));
+  if(!req.body){
+    return res
+      .status(400)
+      .send({ message : "Data to update can not be empty"})
+    }
+    const id = req.params.id;
+    Users.findByIdAndUpdate(id, req.body, { useFindAndModify: false})
+      .then(data => {
+          if(!data){
+              res.status(404).send({ message : `Cannot Update user with ${id}. Maybe user not found!`})
+          }else{
+              res.send(data)
+          }
+      })
+      .catch(err =>{
+          res.status(500).send({ message : "Error Update user information"})
+      })
 });
+
+    
 
 
 module.exports = router;
